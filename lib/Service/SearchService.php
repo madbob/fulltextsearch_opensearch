@@ -181,10 +181,36 @@ class SearchService {
 			'_source_includes' => 'title,lastModified,links,tags,subtags,metatags,more',
 		];
 
+		$must = [];
+		$should = [];
+
+		$this->generateSearchQueryAccess($should, $access);
+		$this->generateSearchQueryTags($should, 'tags', $request->getTags());
+		$this->generateSearchQueryTags($must, 'subtags', $request->getSubTags(true));
+		$this->generateSearchQueryTags($must, 'metatags', $request->getMetaTags());
+		$this->generateSearchSimpleQuery($must, $request->getSimpleQueries());
+		$this->generateSearchSince($must, (int)$request->getOption('since'));
+
+		/*
+			ElasticSearch arbitrarily put regexps in "should" block, but this
+			breaks some use cases. Here I put in "must", waiting for a better
+			API...
+		*/
+		$this->improveSearchQuerying($must, $request);
+
 		$bool = [
 			'filter' => [
-				['term' => ['provider' => $providerId]],
-				['bool' => []],
+				[
+					'term' => [
+						'provider' => $providerId,
+					],
+				],
+				[
+					'bool' => [
+						'must' => $must,
+						'should' => $should,
+					],
+				],
 			],
 		];
 
@@ -192,19 +218,8 @@ class SearchService {
 			$bool['must']['bool'] = $this->generateSearchQueryContent($request);
 		}
 
-		$this->generateSearchQueryAccess($bool['filter'][1]['bool']['should'], $access);
-		$this->generateSearchQueryTags($bool['filter'][1]['bool']['should'], 'tags', $request->getTags());
-		$this->generateSearchQueryTags($bool['filter'][1]['bool']['must'], 'subtags', $request->getSubTags(true));
-		$this->generateSearchQueryTags($bool['filter'][1]['bool']['should'], 'metatags', $request->getMetaTags());
-		$this->generateSearchSimpleQuery($bool['filter'][1]['bool']['must'], $request->getSimpleQueries());
-		$this->generateSearchSince($bool, (int)$request->getOption('since'));
-
 		$params['body']['query']['bool'] = $bool;
 		$params['body']['highlight'] = $this->generateSearchHighlighting($request);
-
-		$this->improveSearchQuerying($request, $params['body']['query']);
-
-		file_put_contents('/tmp/log', print_r($params, true), FILE_APPEND);
 
 		return $params;
 	}
@@ -213,45 +228,33 @@ class SearchService {
 		$str = strtolower($request->getSearch());
 
 		preg_match_all('/[^?]"(?:\\\\.|[^\\\\"])*"|\S+/', " $str ", $words);
-		$queryContent = [];
+		$contents = [];
 		foreach ($words[0] as $word) {
-			try {
-				$queryContent[] = $this->generateQueryContent(trim($word));
-			} catch (QueryContentGenerationException $e) {
+			$searchQueryContent = new QueryContent($word);
+			if (strlen($searchQueryContent->getWord()) === 0) {
 				continue;
 			}
+
+			$contents[] = $searchQueryContent;
 		}
 
-		if (sizeof($queryContent) === 0) {
+		if (sizeof($contents) === 0) {
 			throw new SearchQueryGenerationException();
 		}
 
-		return $this->generateSearchQueryFromQueryContent($request, $queryContent);
-	}
-
-	private function generateQueryContent(string $word): QueryContent {
-		$searchQueryContent = new QueryContent($word);
-		if (strlen($searchQueryContent->getWord()) === 0) {
-			throw new QueryContentGenerationException();
-		}
-
-		return $searchQueryContent;
-	}
-
-	private function generateSearchQueryFromQueryContent(ISearchRequest $request, array $contents): array {
 		$query = [];
+
 		foreach ($contents as $content) {
-			if (!array_key_exists($content->getShould(), $query)) {
-				$query[$content->getShould()] = [];
+			$should = $content->getShould();
+
+			if (!array_key_exists($should, $query)) {
+				$query[$should] = [];
 			}
 
-			if ($content->getShould() === 'must') {
-				$query[$content->getShould()][] =
-					['bool' => ['should' => $this->generateQueryContentFields($request, $content)]];
+			if ($should === 'must') {
+				$query[$should][] = ['bool' => ['should' => $this->generateQueryContentFields($request, $content)]];
 			} else {
-				$query[$content->getShould()] = array_merge(
-					$query[$content->getShould()], $this->generateQueryContentFields($request, $content)
-				);
+				$query[$should] = array_merge($query[$should], $this->generateQueryContentFields($request, $content));
 			}
 		}
 
@@ -327,14 +330,9 @@ class SearchService {
 	}
 
 	private function generateSearchSince(array &$bool, int $since): void {
-		if ($since === 0) {
-			return;
+		if ($since !== 0) {
+			$query[] = ['range' => ['lastModified' => ['gte' => $since]]];
 		}
-
-		$query = [];
-		$query[] = ['range' => ['lastModified' => ['gte' => $since]]];
-
-		$bool['filter']['bool']['must'] = $query;
 	}
 
 	private function generateSearchSimpleQuery(&$query, array $queries): void {
@@ -397,32 +395,19 @@ class SearchService {
 		);
 	}
 
-	private function improveSearchQuerying(ISearchRequest $request, array &$arr): void {
-		$this->improveSearchWildcardFilters($request, $arr);
-		$this->improveSearchRegexFilters($request, $arr);
-	}
-
-	private function improveSearchWildcardFilters(ISearchRequest $request, array &$arr): void {
+	private function improveSearchQuerying(array &$arr, ISearchRequest $request): void {
 		$filters = $request->getWildcardFilters();
 		foreach ($filters as $filter) {
-			$wildcards = [];
 			foreach ($filter as $entry) {
-				$wildcards[] = ['wildcard' => $entry];
+				$arr[] = ['wildcard' => $entry];
 			}
-
-			$arr['bool']['filter']['bool']['should'] = $wildcards;
 		}
-	}
 
-	private function improveSearchRegexFilters(ISearchRequest $request, array &$arr): void {
 		$filters = $request->getRegexFilters();
 		foreach ($filters as $filter) {
-			$regex = [];
 			foreach ($filter as $entry) {
-				$regex[] = ['regexp' => $entry];
+				$arr[] = ['regexp' => $entry];
 			}
-
-			$arr['bool']['filter']['bool']['should'] = $regex;
 		}
 	}
 }
