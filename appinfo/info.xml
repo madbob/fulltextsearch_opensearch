@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>fulltextsearch_opensearch</id>
+	<name>Full Text Search Open Search</name>
+	<summary>Index using OpenSearch</summary>
+	<description>Extension to the _Full Text Search_ app to communicate with OpenSearch.</description>
+	<version>1.0.0</version>
+	<licence>AGPL-3.0-or-later</licence>
+	<author mail="info@madbob.org" homepage="https://www.madbob.org/">Roberto Guido</author>
+	<namespace>FullTextSearch_OpenSearch</namespace>
+	<category>search</category>
+	<bugs>https://github.com/madbob/fulltextsearch_opensearch</bugs>
+
+	<dependencies>
+		<nextcloud min-version="34" max-version="34"/>
+	</dependencies>
+
+	<settings>
+		<admin>OCA\FullTextSearch_OpenSearch\Settings\Admin</admin>
+	</settings>
+
+	<fulltextsearch>
+		<platform>OCA\FullTextSearch_OpenSearch\Platform\OpenSearchPlatform</platform>
+	</fulltextsearch>
+</info>
