@@ -181,23 +181,30 @@ class SearchService {
 			'_source_includes' => 'title,lastModified,links,tags,subtags,metatags,more',
 		];
 
-		$bool = [];
+		$bool = [
+			'filter' => [
+				['term' => ['provider' => $providerId]],
+				['bool' => []],
+			],
+		];
+
 		if ($request->getSearch() !== '') {
 			$bool['must']['bool'] = $this->generateSearchQueryContent($request);
 		}
 
-		$bool['filter']['bool']['must'] = ['term' => ['provider' => $providerId]];
-		$bool['filter']['bool']['should'] = $this->generateSearchQueryAccess($access);
-		$bool['filter']['bool']['should'] = $this->generateSearchQueryTags('tags', $request->getTags());
-		$bool['filter']['bool']['must'] = $this->generateSearchQueryTags('subtags', $request->getSubTags(true));
-		$bool['filter']['bool']['should'] = $this->generateSearchQueryTags('metatags', $request->getMetaTags());
-		$bool['filter']['bool']['must'] = $this->generateSearchSimpleQuery($request->getSimpleQueries());
+		$this->generateSearchQueryAccess($bool['filter'][1]['bool']['should'], $access);
+		$this->generateSearchQueryTags($bool['filter'][1]['bool']['should'], 'tags', $request->getTags());
+		$this->generateSearchQueryTags($bool['filter'][1]['bool']['must'], 'subtags', $request->getSubTags(true));
+		$this->generateSearchQueryTags($bool['filter'][1]['bool']['should'], 'metatags', $request->getMetaTags());
+		$this->generateSearchSimpleQuery($bool['filter'][1]['bool']['must'], $request->getSimpleQueries());
 		$this->generateSearchSince($bool, (int)$request->getOption('since'));
 
 		$params['body']['query']['bool'] = $bool;
 		$params['body']['highlight'] = $this->generateSearchHighlighting($request);
 
 		$this->improveSearchQuerying($request, $params['body']['query']);
+
+		file_put_contents('/tmp/log', print_r($params, true), FILE_APPEND);
 
 		return $params;
 	}
@@ -286,8 +293,7 @@ class SearchService {
 		return $queryFields;
 	}
 
-	private function generateSearchQueryAccess(IDocumentAccess $access): array {
-		$query = [];
+	private function generateSearchQueryAccess(&$query, IDocumentAccess $access): void {
 		$query[] = ['term' => ['owner.keyword' => $access->getViewerId()]];
 		$query[] = ['term' => ['users.keyword' => $access->getViewerId()]];
 		$query[] = ['term' => ['users.keyword' => '__all']];
@@ -299,8 +305,6 @@ class SearchService {
 		foreach ($access->getCircles() as $circle) {
 			$query[] = ['term' => ['circles.keyword' => $circle]];
 		}
-
-		return $query;
 	}
 
 	private function fieldIsOutLimit(ISearchRequest $request, string $field): bool {
@@ -316,13 +320,10 @@ class SearchService {
 		return true;
 	}
 
-	private function generateSearchQueryTags(string $k, array $tags): array {
-		$query = [];
+	private function generateSearchQueryTags(&$query, string $k, array $tags): void {
 		foreach ($tags as $t) {
 			$query[] = ['term' => [$k => $t]];
 		}
-
-		return $query;
 	}
 
 	private function generateSearchSince(array &$bool, int $since): void {
@@ -336,44 +337,41 @@ class SearchService {
 		$bool['filter']['bool']['must'] = $query;
 	}
 
-	private function generateSearchSimpleQuery(array $queries): array {
-		$simpleQuery = [];
-		foreach ($queries as $query) {
-			$value = $query->getValues()[0];
-			$type = $query->getType();
+	private function generateSearchSimpleQuery(&$query, array $queries): void {
+		foreach ($queries as $simpleQuery) {
+			$value = $simpleQuery->getValues()[0];
+			$type = $simpleQuery->getType();
 
 			switch($type) {
 				case ISearchRequestSimpleQuery::COMPARE_TYPE_KEYWORD:
-					$simpleQuery[] = ['term' => [$query->getField() => $value]];
+					$query[] = ['term' => [$simpleQuery->getField() => $value]];
 					break;
 
 				case ISearchRequestSimpleQuery::COMPARE_TYPE_WILDCARD:
-					$simpleQuery[] = ['wildcard' => [$query->getField() => $value]];
+					$query[] = ['wildcard' => [$simpleQuery->getField() => $value]];
 					break;
 
 				case ISearchRequestSimpleQuery::COMPARE_TYPE_INT_EQ:
-					$simpleQuery[] = ['term' => [$query->getField() => $value]];
+					$query[] = ['term' => [$simpleQuery->getField() => $value]];
 					break;
 
 				case ISearchRequestSimpleQuery::COMPARE_TYPE_INT_GTE:
-					$simpleQuery[] = ['range' => [$query->getField() => ['gte' => $value]]];
+					$query[] = ['range' => [$simpleQuery->getField() => ['gte' => $value]]];
 					break;
 
 				case ISearchRequestSimpleQuery::COMPARE_TYPE_INT_LTE:
-					$simpleQuery[] = ['range' => [$query->getField() => ['lte' => $value]]];
+					$query[] = ['range' => [$simpleQuery->getField() => ['lte' => $value]]];
 					break;
 
 				case ISearchRequestSimpleQuery::COMPARE_TYPE_INT_GT:
-					$simpleQuery[] = ['range' => [$query->getField() => ['gt' => $value]]];
+					$query[] = ['range' => [$simpleQuery->getField() => ['gt' => $value]]];
 					break;
 
 				case ISearchRequestSimpleQuery::COMPARE_TYPE_INT_LT:
-					$simpleQuery[] = ['range' => [$query->getField() => ['lt' => $value]]];
+					$query[] = ['range' => [$simpleQuery->getField() => ['lt' => $value]]];
 					break;
 			}
 		}
-
-		return $simpleQuery;
 	}
 
 	private function generateSearchHighlighting(ISearchRequest $request): array {
