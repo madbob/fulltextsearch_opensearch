@@ -190,13 +190,7 @@ class SearchService {
 		$this->generateSearchQueryTags($must, 'metatags', $request->getMetaTags());
 		$this->generateSearchSimpleQuery($must, $request->getSimpleQueries());
 		$this->generateSearchSince($must, (int)$request->getOption('since'));
-
-		/*
-			ElasticSearch arbitrarily put regexps in "should" block, but this
-			breaks some use cases. Here I put in "must", waiting for a better
-			API...
-		*/
-		$this->improveSearchQuerying($must, $request);
+		$this->improveSearchQuerying($should, $request);
 
 		$bool = [
 			'filter' => [
@@ -341,16 +335,17 @@ class SearchService {
 			$type = $simpleQuery->getType();
 
 			switch($type) {
+				case ISearchRequestSimpleQuery::COMPARE_TYPE_INT_EQ:
 				case ISearchRequestSimpleQuery::COMPARE_TYPE_KEYWORD:
 					$query[] = ['term' => [$simpleQuery->getField() => $value]];
 					break;
 
-				case ISearchRequestSimpleQuery::COMPARE_TYPE_WILDCARD:
-					$query[] = ['wildcard' => [$simpleQuery->getField() => $value]];
+				case ISearchRequestSimpleQuery::COMPARE_TYPE_REGEX:
+					$query[] = ['regexp' => [$simpleQuery->getField() => $value]];
 					break;
 
-				case ISearchRequestSimpleQuery::COMPARE_TYPE_INT_EQ:
-					$query[] = ['term' => [$simpleQuery->getField() => $value]];
+				case ISearchRequestSimpleQuery::COMPARE_TYPE_WILDCARD:
+					$query[] = ['wildcard' => [$simpleQuery->getField() => $value]];
 					break;
 
 				case ISearchRequestSimpleQuery::COMPARE_TYPE_INT_GTE:
