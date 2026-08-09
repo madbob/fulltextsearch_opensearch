@@ -1,3 +1,9 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+  - SPDX-FileCopyrightText: 2026 Roberto Guido
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 <template>
 	<NcSettingsSection
 		v-show="visible"

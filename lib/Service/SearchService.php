@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+/**
+ * SPDX-FileCopyrightText: 2018 Nextcloud GmbH and Nextcloud contributors
+ * SPDX-FileCopyrightText: 2026 Roberto Guido
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
 namespace OCA\FullTextSearch_OpenSearch\Service;
 
 use Exception;
@@ -342,6 +348,13 @@ class SearchService {
 
 				case ISearchRequestSimpleQuery::COMPARE_TYPE_REGEX:
 					$query[] = ['regexp' => [$simpleQuery->getField() => $value]];
+					break;
+
+				case ISearchRequestSimpleQuery::COMPARE_TYPE_ARRAY:
+					if (!is_array($value)) {
+						$value = $simpleQuery->getValues();
+					}
+					$query[] = ['terms' => [$simpleQuery->getField() => $value]];
 					break;
 
 				case ISearchRequestSimpleQuery::COMPARE_TYPE_WILDCARD:
