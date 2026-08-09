@@ -28,7 +28,6 @@ class ConfigService {
 			ConfigLexicon::FIELDS_LIMIT => $this->appConfig->getAppValueInt(ConfigLexicon::FIELDS_LIMIT),
 			ConfigLexicon::OPENSEARCH_HOST => $this->appConfig->getAppValueString(ConfigLexicon::OPENSEARCH_HOST),
 			ConfigLexicon::OPENSEARCH_INDEX => $this->appConfig->getAppValueString(ConfigLexicon::OPENSEARCH_INDEX),
-			ConfigLexicon::OPENSEARCH_LOGGER_ENABLED => $this->appConfig->getAppValueBool(ConfigLexicon::OPENSEARCH_LOGGER_ENABLED),
 			ConfigLexicon::ANALYZER_TOKENIZER => $this->appConfig->getAppValueString(ConfigLexicon::ANALYZER_TOKENIZER),
 			ConfigLexicon::ALLOW_SELF_SIGNED_CERT => $this->appConfig->getAppValueBool(ConfigLexicon::ALLOW_SELF_SIGNED_CERT),
 		];
@@ -47,7 +46,6 @@ class ConfigService {
 					$this->appConfig->setAppValueString($k, $save[$k]);
 					break;
 
-				case ConfigLexicon::OPENSEARCH_LOGGER_ENABLED:
 				case ConfigLexicon::ALLOW_SELF_SIGNED_CERT:
 					$this->appConfig->setAppValueBool($k, boolval($save[$k]));
 					break;

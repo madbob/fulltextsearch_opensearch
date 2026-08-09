@@ -33,12 +33,6 @@
 				:label="t('fulltextsearch_opensearch', '[Advanced] Analyzer tokenizer')"
 				:helperText="t('fulltextsearch_opensearch', 'Some language might need a specific tokenizer.')"
 				@blur="saveSettings" />
-
-			<NcCheckboxRadioSwitch
-				v-model="config.opensearch_logger_enabled"
-				@update:modelValue="saveSettings">
-				{{ t('fulltextsearch_opensearch', 'Enable debug logging.') }}
-			</NcCheckboxRadioSwitch>
 		</NcFormBox>
 	</NcSettingsSection>
 </template>
@@ -81,7 +75,6 @@ async function saveSettings() {
 				opensearch_index: config.value.opensearch_index,
 				analyzer_tokenizer: config.value.analyzer_tokenizer,
 				allow_self_signed_cert: config.value.allow_self_signed_cert,
-				opensearch_logger_enabled: config.value.opensearch_logger_enabled,
 			},
 		})
 		config.value = data

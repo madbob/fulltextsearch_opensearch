@@ -100,13 +100,7 @@ class OpenSearchPlatform implements IFullTextSearchPlatform {
 			'verify_peer' => $this->appConfig->getAppValueBool(ConfigLexicon::ALLOW_SELF_SIGNED_CERT) === false,
 		];
 
-		$logger = null;
-		$debug = $this->appConfig->getAppValueBool(ConfigLexicon::OPENSEARCH_LOGGER_ENABLED);
-		if ($debug) {
-			// $logger = $this->logger;
-		}
-
-		$this->client = (new SymfonyClientFactory(0, $logger))->create($config);
+		$this->client = (new SymfonyClientFactory())->create($config);
 	}
 
 	public function testPlatform(): bool {
