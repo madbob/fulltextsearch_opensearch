@@ -85,7 +85,7 @@ class SearchService {
 		$index->setTags($result['_source']['tags']);
 		$index->setSubTags($result['_source']['subtags']);
 		$index->setMetaTags($result['_source']['metatags']);
-		$index->setMore($result['_source']['more'] ?: []);
+		$index->setMore($result['_source']['more'] ?? []);
 		$index->setParts($result['_source']['parts']);
 		$index->setContent($result['_source']['content'] ?? '');
 
