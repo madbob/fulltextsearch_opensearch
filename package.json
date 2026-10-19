@@ -1,6 +1,6 @@
 {
   "name": "fulltextsearch_opensearch",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "scripts": {
@@ -19,10 +19,10 @@
   },
   "devDependencies": {
     "@nextcloud/browserslist-config": "^3.1.2",
-	"@nextcloud/eslint-config": "^9.0.1",
+    "@nextcloud/eslint-config": "^9.0.1",
     "@nextcloud/stylelint-config": "^3.1.1",
-	"@nextcloud/vite-config": "^2.5.4",
-	"vite": "^7.3.6"
+    "@nextcloud/vite-config": "^2.5.4",
+    "vite": "^7.3.6"
   },
   "engines": {
     "node": "^24.0.0",
