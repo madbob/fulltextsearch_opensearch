@@ -10,7 +10,7 @@
 	<name>Full Text Search - Open Search Platform</name>
 	<summary>Index using OpenSearch</summary>
 	<description>Extension to the _Full Text Search_ app to communicate with OpenSearch.</description>
-	<version>2.0.0</version>
+	<version>2.0.2</version>
 	<licence>AGPL-3.0-or-later</licence>
 	<author mail="info@madbob.org" homepage="https://www.madbob.org/">Roberto Guido</author>
 	<namespace>FullTextSearch_OpenSearch</namespace>

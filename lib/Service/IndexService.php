@@ -34,20 +34,20 @@ class IndexService {
 				return;
 			}
 		} catch (Exception $e) {
-			$this->logger->error($e->getMessage(), ['exception' => $e]);
+			$this->logger->error('Error testing index: ' . $e->getMessage(), ['exception' => $e]);
 		}
 
 		try {
 			$client->indices()->create($this->generateGlobalMap(true));
 		} catch (Exception $e) {
-			$this->logger->error('reset index all', ['exception' => $e]);
+			$this->logger->error('Error creating index: resetting index all', ['exception' => $e]);
 			$this->resetIndexAll($client);
 		}
 
 		try {
 			$client->ingest()->putPipeline($this->generateGlobalIngest(true));
 		} catch (Exception $e) {
-			$this->logger->error('reset index all', ['exception' => $e]);
+			$this->logger->error('Error creating pipeline: resetting all', ['exception' => $e]);
 			$this->resetIndexAll($client);
 		}
 	}
@@ -56,7 +56,7 @@ class IndexService {
 		try {
 			$client->deleteByQuery($this->generateDeleteQuery($providerId));
 		} catch (Exception $e) {
-			$this->logger->error('reset index all', ['exception' => $e]);
+			$this->logger->error('Error deleting index: resetting all', ['exception' => $e]);
 		}
 	}
 
@@ -64,13 +64,13 @@ class IndexService {
 		try {
 			$client->ingest()->deletePipeline($this->generateGlobalIngest(false));
 		} catch (Exception $e) {
-			$this->logger->warning($e->getMessage(), ['exception' => $e]);
+			$this->logger->warning('Error deleting pipeline: ' . $e->getMessage(), ['exception' => $e]);
 		}
 
 		try {
 			$client->indices()->delete($this->generateGlobalMap(false));
 		} catch (Exception $e) {
-			$this->logger->warning($e->getMessage(), ['exception' => $e]);
+			$this->logger->warning('Error deleting index: ' . $e->getMessage(), ['exception' => $e]);
 		}
 	}
 
@@ -119,13 +119,16 @@ class IndexService {
 
 		$params['body'] = [
 			'settings' => [
-				'index.mapping.total_fields.limit' => $this->appConfig->getAppValueInt(ConfigLexicon::FIELDS_LIMIT),
-				'analysis' => [
-					'filter' => [
-						'shingle' => [
-							'type' => 'shingle'
+				'index' => [
+					'codec' => $this->appConfig->getAppValueString(ConfigLexicon::INDEX_CODEC),
+					'mapping' => [
+						'total_fields' => [
+							'limit' => $this->appConfig->getAppValueInt(ConfigLexicon::FIELDS_LIMIT),
 						]
 					],
+				],
+				'analysis' => [
+					'filter' => [],
 					'char_filter' => [
 						'pre_negs' => [
 							'type' => 'pattern_replace',
@@ -142,7 +145,7 @@ class IndexService {
 						'analyzer' => [
 							'type' => 'custom',
 							'tokenizer' => $this->appConfig->getAppValueString(ConfigLexicon::ANALYZER_TOKENIZER),
-							'filter' => ['lowercase', 'stop', 'kstem']
+							'filter' => array_map(fn($filter) => trim($filter), explode(',', $this->appConfig->getAppValueString(ConfigLexicon::ANALYZER_FILTER))),
 						]
 					]
 				]
@@ -219,6 +222,17 @@ class IndexService {
 				]
 			]
 		];
+
+		$max_token_length = $this->appConfig->getAppValueInt(ConfigLexicon::MAX_TOKEN_LENGTH);
+		if ($max_token_length > 0) {
+			$params['body']['settings']['analysis']['filter']['token_length'] = [
+				'type' => 'length',
+				'min' => 1,
+				'max' => $max_token_length,
+			];
+
+			$params['body']['settings']['analysis']['analyzer']['analyzer']['filter'][] = 'token_length';
+		}
 
 		return $params;
 	}

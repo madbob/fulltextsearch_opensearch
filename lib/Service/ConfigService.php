@@ -25,7 +25,6 @@ class ConfigService {
 
 	public function getConfig(): array {
 		return [
-			ConfigLexicon::FIELDS_LIMIT => $this->appConfig->getAppValueInt(ConfigLexicon::FIELDS_LIMIT),
 			ConfigLexicon::OPENSEARCH_HOST => $this->appConfig->getAppValueString(ConfigLexicon::OPENSEARCH_HOST),
 			ConfigLexicon::OPENSEARCH_INDEX => $this->appConfig->getAppValueString(ConfigLexicon::OPENSEARCH_INDEX),
 			ConfigLexicon::ANALYZER_TOKENIZER => $this->appConfig->getAppValueString(ConfigLexicon::ANALYZER_TOKENIZER),
@@ -36,10 +35,6 @@ class ConfigService {
 	public function setConfig(array $save): void {
 		foreach(array_keys($save) as $k) {
 			switch($k) {
-				case ConfigLexicon::FIELDS_LIMIT:
-					$this->appConfig->setAppValueInt($k, intval($save[$k]));
-					break;
-
 				case ConfigLexicon::OPENSEARCH_HOST:
 				case ConfigLexicon::OPENSEARCH_INDEX:
 				case ConfigLexicon::ANALYZER_TOKENIZER:
